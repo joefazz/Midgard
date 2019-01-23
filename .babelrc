@@ -1,0 +1,14 @@
+{
+    "presets": [
+        [
+            "env",
+            {
+                "exclude": ["transform-regenerator"],
+                "targets": {
+                    "node": 8
+                }
+            }
+        ]
+    ],
+    "plugins": ["transform-class-properties"]
+}
