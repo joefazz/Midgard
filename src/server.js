@@ -1,4 +1,7 @@
-import express from "express";
+const server = require("express")();
+const app = require("http").Server(server);
+const io = require("socket.io")(app, { origins: "*:*" });
+
 import { createToken } from "./auth";
 import passport from "passport";
 import bodyParser from "body-parser";
@@ -6,8 +9,7 @@ import cors from "cors";
 import { User } from "../models/user";
 import { Group } from "../models/group";
 import { spawn } from "child_process";
-
-const server = new express();
+import docker from "./dockerapi";
 
 server.use(bodyParser.json());
 
@@ -121,9 +123,10 @@ server.post("/python", (req, res) => {
 
     console.log(code);
     const thread = spawn;
-    const process = thread("python", ["python.py", code]);
+    const process = thread("python3", ["python.py", code]);
 
     process.stdout.on("data", data => {
+        console.log(data);
         res.send(data.toString());
     });
 
@@ -139,4 +142,16 @@ server.post("/python", (req, res) => {
 //         .then((admins) => res.send(admins));
 // });
 
-export default server;
+io.on("connection", socket => {
+    socket.on("containers.list", () => {
+        refreshContainers();
+    });
+});
+
+function refreshContainers() {
+    docker.listContainers({ all: true }, (err, containers) => {
+        io.emit("containers.list", containers);
+    });
+}
+
+export default app;
