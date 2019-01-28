@@ -1,0 +1,78 @@
+export var gods = [
+    "Aegir",
+    "Aesir",
+    "Balder",
+    "Bolverk",
+    "Bor",
+    "Bragi",
+    "Buri",
+    "Day",
+    "Earth",
+    "Einherjar",
+    "Eir",
+    "Fjorgyn",
+    "Forseti",
+    "Freyja",
+    "Freyr",
+    "Frigga",
+    "Fulla",
+    "Gangnrad",
+    "Gefion",
+    "Grimnir",
+    "Gullveig",
+    "Harbard",
+    "Heimdall",
+    "Hel",
+    "Hermod",
+    "Hod",
+    "Honir",
+    "Idun",
+    "Kvasir",
+    "Lofn",
+    "Loki",
+    "Magni",
+    "Mimir",
+    "Modgud",
+    "Modi",
+    "Moon",
+    "Nanna",
+    "Narvi",
+    "Night",
+    "Njord",
+    "Norns",
+    "Od",
+    "Odin",
+    "Ran",
+    "Rig",
+    "Rind",
+    "Saga",
+    "Sif",
+    "Sigyn",
+    "Sjofn",
+    "Skadi",
+    "Sun",
+    "Syn",
+    "Thor",
+    "Thrud",
+    "Tyr",
+    "Ull",
+    "Vali",
+    "Valkyries",
+    "Vanir",
+    "Var",
+    "Ve",
+    "Vidar",
+    "Vili",
+    "Vor"
+];
+
+export function getGod() {
+    let index = Math.floor(Math.random() * gods.length);
+    let val = gods[index];
+    gods.splice(index, 1);
+    return val;
+}
+
+export function releaseGod(deity) {
+    gods.push(deity);
+}

@@ -10,7 +10,7 @@ import { User } from "../models/user";
 import { Group } from "../models/group";
 import { spawn } from "child_process";
 import docker from "./dockerapi";
-
+import { getGod } from "./utils/gods";
 server.use(bodyParser.json());
 
 server.use(cors());
@@ -142,13 +142,78 @@ server.post("/python", (req, res) => {
 //         .then((admins) => res.send(admins));
 // });
 
+server.post("/image", (req, res) => {});
+
 io.on("connection", socket => {
     socket.on("containers.list", () => {
         refreshContainers();
     });
+
+    socket.on("container.start", () => {
+        startContainer();
+    });
+
+    socket.on("container.stop", id => {
+        console.log(id);
+        stopContainer(id);
+    });
 });
 
-function refreshContainers() {
+async function startContainer() {
+    let stream = await docker.buildImage(
+        {
+            context: __dirname + "/docker/basic",
+            src: ["Dockerfile"]
+        },
+        { t: "basic" }
+    );
+
+    await new Promise((resolve, reject) => {
+        docker.modem.followProgress(stream, (err, res) => {
+            console.log(res);
+            return err ? reject(err) : resolve(res);
+        });
+    });
+
+    const name = getGod();
+
+    docker
+        .createContainer({
+            Image: "basic",
+            AttachStdin: false,
+            AttachStdout: true,
+            AttachStderr: true,
+            Tty: true,
+            Cmd: ["/bin/ash"],
+            OpenStdin: false,
+            StdinOnce: false,
+            name: name
+        })
+        .then(container => {
+            container.inspect(function(err, res) {
+                io.emit("containers.start", { name: name, info: res });
+            });
+            container.start();
+        });
+}
+
+async function stopContainer(id) {
+    try {
+        let container = docker.getContainer(id);
+
+        await container.stop();
+
+        container.remove();
+
+        console.log("SUCCESSFULLY KILLED: " + id);
+
+        io.emit("container.stop");
+    } catch (err) {
+        console.log(err);
+    }
+}
+
+function pollContainer() {
     docker.listContainers({ all: true }, (err, containers) => {
         io.emit("containers.list", containers);
     });
