@@ -1,7 +1,7 @@
-import Docker from "dockerode";
+import Docker = require("dockerode");
 
 const SOCKET_PATH = "/var/run/docker.sock";
 
 const options = { socketPath: SOCKET_PATH };
 
-module.exports = new Docker(options);
+export default new Docker(options);

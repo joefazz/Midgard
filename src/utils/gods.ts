@@ -73,6 +73,6 @@ export function getGod() {
     return val;
 }
 
-export function releaseGod(deity) {
+export function releaseGod(deity: string) {
     gods.push(deity);
 }

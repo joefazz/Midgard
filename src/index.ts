@@ -1,5 +1,5 @@
-import app from "./server";
-import mongoose from "mongoose";
+import server from "./server";
+// import mongoose from "mongoose";
 const PORT = 4000;
 
 // mongoose.connect(
@@ -8,7 +8,7 @@ const PORT = 4000;
 // );
 
 function start() {
-    app.listen(PORT, () =>
+    server.listen(PORT, () =>
         console.log("Server running on http://localhost:" + PORT)
     );
 }

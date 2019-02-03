@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require("mongoose");
 
 export const Schema = mongoose.Schema;
 
@@ -18,4 +18,4 @@ const userSchema = new Schema({
     tags: [String]
 });
 
-export const User = mongoose.model('User', userSchema);
+export const User = mongoose.model("User", userSchema);
