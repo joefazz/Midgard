@@ -1,16 +1,24 @@
 const server = require("express")();
-const app = require("http").Server(server);
-const io = require("socket.io")(app, { origins: "*:*" });
-
+const wsExpress = require("express-ws");
+const websocketStream = require("websocket-stream/stream");
 import { createToken } from "./auth";
+import fs from "fs";
 import passport from "passport";
 import bodyParser from "body-parser";
 import cors from "cors";
 import { User } from "../models/user";
 import { Group } from "../models/group";
 import { spawn } from "child_process";
-import docker from "./dockerapi";
-import { getGod } from "./utils/gods";
+import {
+    attachSocketToContainer,
+    startContainer,
+    stopContainer
+} from "./docker/container_funcs";
+
+wsExpress(server, null, {
+    perMessageDeflate: false
+});
+
 server.use(bodyParser.json());
 
 server.use(cors());
@@ -18,6 +26,36 @@ server.use(cors());
 // server.use('/user', passport.authenticate('jwt', { session: false }));
 
 // User signup endpoint
+
+server.ws("/", (ws, req) => {
+    console.log("Connection Made");
+    startContainer(ws);
+
+    ws.on("message", msg => {
+        const { type, data } = JSON.parse(msg);
+        console.log("Message Recieved");
+        switch (type) {
+            case "Container.Stop":
+                console.log("Stopping Container");
+                // stopContainer(data.id);
+                return;
+            default:
+                console.log("Unknown type", type);
+        }
+    });
+
+    ws.on("close", () => {
+        console.log("Connection Lost");
+    });
+});
+
+server.ws("/connect", (ws, req) => {
+    const stream = websocketStream(ws, { binary: true });
+    console.log("Trying to connect streams");
+
+    attachSocketToContainer(stream, req.query.id);
+});
+
 server.post(
     "/signup",
     passport.authenticate("signup", { session: false }),
@@ -144,79 +182,4 @@ server.post("/python", (req, res) => {
 
 server.post("/image", (req, res) => {});
 
-io.on("connection", socket => {
-    socket.on("containers.list", () => {
-        refreshContainers();
-    });
-
-    socket.on("container.start", () => {
-        startContainer();
-    });
-
-    socket.on("container.stop", id => {
-        console.log(id);
-        stopContainer(id);
-    });
-});
-
-async function startContainer() {
-    let stream = await docker.buildImage(
-        {
-            context: __dirname + "/docker/basic",
-            src: ["Dockerfile"]
-        },
-        { t: "basic" }
-    );
-
-    await new Promise((resolve, reject) => {
-        docker.modem.followProgress(stream, (err, res) => {
-            console.log(res);
-            return err ? reject(err) : resolve(res);
-        });
-    });
-
-    const name = getGod();
-
-    docker
-        .createContainer({
-            Image: "basic",
-            AttachStdin: false,
-            AttachStdout: true,
-            AttachStderr: true,
-            Tty: true,
-            Cmd: ["/bin/ash"],
-            OpenStdin: false,
-            StdinOnce: false,
-            name: name
-        })
-        .then(container => {
-            container.inspect(function(err, res) {
-                io.emit("containers.start", { name: name, info: res });
-            });
-            container.start();
-        });
-}
-
-async function stopContainer(id) {
-    try {
-        let container = docker.getContainer(id);
-
-        await container.stop();
-
-        container.remove();
-
-        console.log("SUCCESSFULLY KILLED: " + id);
-
-        io.emit("container.stop");
-    } catch (err) {
-        console.log(err);
-    }
-}
-
-function pollContainer() {
-    docker.listContainers({ all: true }, (err, containers) => {
-        io.emit("containers.list", containers);
-    });
-}
-
-export default app;
+export default server;

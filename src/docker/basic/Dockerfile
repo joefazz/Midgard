@@ -1,5 +1,5 @@
 FROM alpine
 
-RUN apk add --update nodejs nodejs-npm git python3
+RUN apk add --update bash
 
-CMD [ "bin/ash" ]
+CMD [ "bin/bash" ]
