@@ -6,7 +6,7 @@ export async function startContainer(ws: WebSocket) {
     let stream = await docker.buildImage(
         {
             context: __dirname + "/basic",
-            src: ["Dockerfile"]
+            src: ["Dockerfile", "node.js"]
         },
         { t: "basic" }
     );
@@ -72,31 +72,44 @@ export async function attachSocketToContainer(
 export async function executeCommand(
     ws: WebSocket,
     id: string,
-    lang: string,
     repl: string,
-    command: string
+    file: string
 ) {
     try {
-        const cmd = `echo "${_.escape(
-            command
-        )}" > ${lang}.${lang};${repl} ${lang}.${lang}`;
+        let attach_opts = {
+            Tty: true,
+            stream: false,
+            stdout: true,
+            stderr: true
+        };
+
+        const cmd = [repl, file];
 
         console.log(cmd);
 
         let container = docker.getContainer(id);
 
-        const execID = await container.exec({
-            AttachStdin: false,
-            AttachStdout: true,
-            AttachStderr: true,
-            Cmd: [cmd]
-        });
-
-        console.log(
-            await docker.getExec(execID).start({ Detach: true, Tty: true })
+        container.exec(
+            {
+                AttachStdin: false,
+                AttachStdout: true,
+                AttachStderr: true,
+                Cmd: cmd
+            },
+            (err, exec) => {
+                exec.start(attach_opts, (err: any, res: any) => {
+                    res.on("data", (chunk: any) =>
+                        ws.send(
+                            JSON.stringify({
+                                type: "Container.Exec",
+                                data: chunk.toString()
+                            })
+                        )
+                    );
+                });
+            }
         );
     } catch (err) {
-        console.log("Error executing " + command + " in " + repl, err);
         // ws.send(
         //     JSON.stringify({ type: "Container.Exec", data: err.toString() })
         // );

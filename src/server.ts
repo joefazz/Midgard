@@ -47,7 +47,7 @@ server.ws("/", (ws: WebSocket) => {
                 return;
             case "Container.Exec":
                 console.log("Executing command");
-                executeCommand(ws, data.id, data.lang, data.repl, data.command);
+                executeCommand(ws, data.id, "node", "node.js");
                 break;
             default:
                 console.log("Unknown type", type);
