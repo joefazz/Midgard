@@ -1,6 +1,7 @@
 import docker from "./dockerapi";
 import _ = require("lodash");
 import { getGod } from "../utils/gods";
+import { Repl } from "../types";
 
 export async function startContainer(ws: WebSocket) {
     let stream = await docker.buildImage(
@@ -115,7 +116,7 @@ export async function readCode(ws: WebSocket, id: string, file: string) {
 export async function executeCommand(
     ws: WebSocket,
     id: string,
-    repl: string,
+    repl: Repl,
     code: string
 ) {
     try {
@@ -126,13 +127,31 @@ export async function executeCommand(
             stderr: true
         };
 
-        const file = repl === "node" ? "node.js" : "python.py";
+        let file = "";
 
-        const cmd = [
-            "bash",
-            "-c",
-            `echo "${code}" > ${file} && ${repl} ${file}`
-        ];
+        switch (repl) {
+            case Repl.NODE:
+                file = "node.js";
+                break;
+            case Repl.PYTHON:
+                file = "python.py";
+                break;
+            case Repl.C:
+                file = "clang.c";
+        }
+
+        let cmd = ["bash", "-c"];
+
+        // Without this line the echo will break if the user decides they want to use a string
+        code = code.replace(/"/g, `\\"`);
+
+        if (repl === Repl.C) {
+            cmd.push(
+                `echo "${code}" > ${file} && gcc ${file} && ./a.out && rm a.out`
+            );
+        } else {
+            cmd.push(`echo "${code}" > ${file} && ${repl} ${file}`);
+        }
 
         console.log(cmd);
 
