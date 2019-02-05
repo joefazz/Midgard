@@ -29,7 +29,8 @@ export async function startContainer(ws: WebSocket) {
         Tty: true,
         Cmd: ["/bin/bash"],
         OpenStdin: true,
-        StdinOnce: false
+        StdinOnce: false,
+        name
     });
 
     await container.start();
@@ -70,6 +71,7 @@ export async function attachSocketToContainer(
     }
 }
 
+// TODO: Implement this
 export async function readCode(ws: WebSocket, id: string, file: string) {
     try {
         let attach_opts = {
