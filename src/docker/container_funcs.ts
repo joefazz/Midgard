@@ -69,11 +69,54 @@ export async function attachSocketToContainer(
     }
 }
 
+export async function readCode(ws: WebSocket, id: string, file: string) {
+    try {
+        let attach_opts = {
+            Tty: true,
+            stream: false,
+            stdout: true,
+            stderr: true
+        };
+        const cmd = ["cat", file];
+        const container = docker.getContainer(id);
+
+        container.exec(
+            {
+                AttachStdin: false,
+                AttachStdout: true,
+                AttachStderr: true,
+                Cmd: cmd
+            },
+            (err, exec) => {
+                if (err) {
+                    // handle err
+                    console.log(err);
+                    return;
+                }
+                exec.start(attach_opts, (err: any, res: any) => {
+                    console.log(err);
+                    res.on("data", (chunk: any) => {
+                        console.log(chunk.toString());
+                        ws.send(
+                            JSON.stringify({
+                                type: "Code.Read",
+                                data: chunk.toString()
+                            })
+                        );
+                    });
+                });
+            }
+        );
+    } catch (err) {
+        console.log(err);
+    }
+}
+
 export async function executeCommand(
     ws: WebSocket,
     id: string,
     repl: string,
-    file: string
+    code: string
 ) {
     try {
         let attach_opts = {
@@ -83,7 +126,13 @@ export async function executeCommand(
             stderr: true
         };
 
-        const cmd = [repl, file];
+        const file = repl === "node" ? "node.js" : "python.py";
+
+        const cmd = [
+            "bash",
+            "-c",
+            `echo "${code}" > ${file} && ${repl} ${file}`
+        ];
 
         console.log(cmd);
 
@@ -98,14 +147,16 @@ export async function executeCommand(
             },
             (err, exec) => {
                 exec.start(attach_opts, (err: any, res: any) => {
-                    res.on("data", (chunk: any) =>
+                    console.log(err);
+                    res.on("data", (chunk: any) => {
+                        console.log(chunk.toString());
                         ws.send(
                             JSON.stringify({
                                 type: "Container.Exec",
                                 data: chunk.toString()
                             })
-                        )
-                    );
+                        );
+                    });
                 });
             }
         );
@@ -129,6 +180,19 @@ export async function stopContainer(id: string) {
     } catch (err) {
         console.log(err);
     }
+}
+
+export function stopEverything() {
+    docker.listContainers(function(err, containers = []) {
+        if (err) {
+            return;
+        }
+        containers.forEach(function(containerInfo) {
+            docker
+                .getContainer(containerInfo.Id)
+                .stop(() => console.log("Stopped: " + containerInfo.Id));
+        });
+    });
 }
 
 // export function pollContainer() {

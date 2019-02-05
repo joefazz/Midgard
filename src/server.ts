@@ -10,10 +10,13 @@ import { User } from "./models/user";
 import {
     attachSocketToContainer,
     startContainer,
-    executeCommand
+    executeCommand,
+    readCode
 } from "./docker/container_funcs";
 import { Request, Response, NextFunction } from "express";
 import { MongoError } from "mongodb";
+import fs = require("fs");
+import { dirname } from "path";
 
 const server = express();
 
@@ -47,7 +50,10 @@ server.ws("/", (ws: WebSocket) => {
                 return;
             case "Container.Exec":
                 console.log("Executing command");
-                executeCommand(ws, data.id, "node", "node.js");
+                executeCommand(ws, data.id, data.repl, data.code);
+                break;
+            case "Code.Read":
+                readCode(ws, data.id, data.file);
                 break;
             default:
                 console.log("Unknown type", type);
