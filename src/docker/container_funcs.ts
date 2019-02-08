@@ -3,21 +3,8 @@ import _ = require("lodash");
 import { getGod } from "../utils/gods";
 import { Repl } from "../types";
 
-export async function startContainer(ws: WebSocket) {
-    let stream = await docker.buildImage(
-        {
-            context: __dirname + "/basic",
-            src: ["Dockerfile", "node.js"]
-        },
-        { t: "basic" }
-    );
-
-    await new Promise((resolve, reject) => {
-        docker.modem.followProgress(stream, (err: Error, res: any) => {
-            console.log(res);
-            return err ? reject(err) : resolve(res);
-        });
-    });
+export async function startBasicContainer(ws: WebSocket) {
+    await buildImage("basic");
 
     const name = getGod();
 
@@ -195,7 +182,7 @@ export async function stopContainer(id: string) {
 
         await container.stop();
 
-        container.remove();
+        await container.remove();
 
         console.log("SUCCESSFULLY KILLED: " + id);
     } catch (err) {
@@ -212,8 +199,35 @@ export function stopEverything() {
             docker
                 .getContainer(containerInfo.Id)
                 .stop(() => console.log("Stopped: " + containerInfo.Id));
+
+            docker
+                .getContainer(containerInfo.Id)
+                .remove(() => console.log("Removed: " + containerInfo.Id));
         });
     });
+}
+
+export async function loadExerciseContainer(ws: WebSocket, exerciseID: number) {
+    let imageName = exerciseID === 0 ? "python_basics" : "undef";
+
+    await buildImage(imageName);
+
+    let container = await docker.createContainer({
+        Image: imageName,
+        AttachStderr: true,
+        AttachStdout: true,
+        AttachStdin: false,
+        Tty: true
+    });
+
+    await container.start();
+
+    ws.send(
+        JSON.stringify({
+            type: "Exercise.Connect",
+            data: { id: container.id }
+        })
+    );
 }
 
 // export function pollContainer() {
@@ -221,3 +235,20 @@ export function stopEverything() {
 //         // io.emit("containers.list", containers);
 //     });
 // }
+
+async function buildImage(image: string, label?: string) {
+    let stream = await docker.buildImage(
+        {
+            context: __dirname + "/" + image,
+            src: ["Dockerfile"]
+        },
+        { t: label || image }
+    );
+
+    await new Promise((resolve, reject) => {
+        docker.modem.followProgress(stream, (err: Error, res: any) => {
+            console.log(res);
+            return err ? reject(err) : resolve(res);
+        });
+    });
+}

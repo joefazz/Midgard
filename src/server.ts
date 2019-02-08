@@ -9,9 +9,10 @@ import cors = require("cors");
 import { User } from "./models/user";
 import {
     attachSocketToContainer,
-    startContainer,
+    startBasicContainer,
     executeCommand,
-    readCode
+    readCode,
+    loadExerciseContainer
 } from "./docker/container_funcs";
 import { Request, Response, NextFunction } from "express";
 import { MongoError } from "mongodb";
@@ -37,7 +38,7 @@ server.use(cors());
 // @ts-ignore
 server.ws("/", (ws: WebSocket) => {
     console.log("Connection Made");
-    startContainer(ws);
+    startBasicContainer(ws);
 
     // @ts-ignore
     ws.on("message", (msg: string) => {
@@ -54,6 +55,9 @@ server.ws("/", (ws: WebSocket) => {
                 break;
             case "Code.Read":
                 readCode(ws, data.id, data.file);
+                break;
+            case "Exercise.Start":
+                loadExerciseContainer(ws, data.id);
                 break;
             default:
                 console.log("Unknown type", type);
