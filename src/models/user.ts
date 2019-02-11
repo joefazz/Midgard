@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose = require("mongoose");
 
 export const Schema = mongoose.Schema;
 
@@ -14,8 +14,20 @@ const userSchema = new Schema({
     lastName: String,
     hash: String,
     salt: String,
-    age: Number,
     tags: [String]
 });
 
-export const User = mongoose.model("User", userSchema);
+type IUser = {
+    name: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    hash: string;
+    salt: string;
+    tags: string;
+};
+
+export const User = mongoose.model<IUser & mongoose.Document>(
+    "User",
+    userSchema
+);

@@ -16,8 +16,6 @@ import {
 } from "./docker/container_funcs";
 import { Request, Response, NextFunction } from "express";
 import { MongoError } from "mongodb";
-import fs = require("fs");
-import { dirname } from "path";
 
 const server = express();
 
