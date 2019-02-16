@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 
 COPY package_requirements.txt ./
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r package_requirements.txt
 
 COPY . .
 

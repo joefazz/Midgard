@@ -16,6 +16,8 @@ import {
 } from "./docker/container_funcs";
 import { Request, Response, NextFunction } from "express";
 import { MongoError } from "mongodb";
+import { Activity, IActivity } from "./models/activity";
+import { Exercise } from "./models/exercise";
 
 const server = express();
 
@@ -156,6 +158,33 @@ server.post("/user", (req: Request, res: Response) => {
             }
         }
     );
+});
+
+server.get("/exercises", (req: Request, res: Response) => {
+    Activity.find({}, (err, documents) => {
+        if (err) {
+            res.status(500).send(err);
+        }
+        res.json(documents).send();
+    });
+});
+
+server.get("/activity", (req: Request, res: Response) => {
+    const { id } = req.query;
+
+    Activity.findById(id)
+        .populate("exercises")
+        .exec()
+        .then(activity => {
+            if (activity) {
+                res.json(activity);
+                return;
+            }
+            res.sendStatus(404);
+        })
+        .catch(err => {
+            res.status(500).json(err);
+        });
 });
 
 // server.post("/python", (req: Request, res: Response) => {

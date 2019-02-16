@@ -8,14 +8,15 @@ const exerciseSchema = new Schema({
     task: String,
     expectedResult: String,
     prebakedCode: String,
-    requiredCode: String
+    requiredCode: String,
+    activity: { type: Schema.Types.ObjectId, ref: "Activity" }
 });
 
 export type IExercise = {
     title: string;
     description: string;
     task: string;
-    expectedResult: string;
+    expectedResult?: string;
     prebakedCode?: string;
     requiredCode?: string;
 };

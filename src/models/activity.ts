@@ -11,17 +11,17 @@ const activitySchema = new Schema({
     length: Number,
     difficulty: String,
     language: String,
-    exercises: [Exercise]
+    exercises: [{ type: Schema.Types.ObjectId, ref: Exercise.modelName }]
 });
 
-type IActivity = {
+export type IActivity = {
     title: string;
     description: string;
     container: string;
     length: number;
     difficulty: "beginner" | "intermediate" | "advanced";
     language: string;
-    exercises: IExercise[];
+    exercises?: mongoose.Types.ObjectId[];
 };
 
 export const Activity = mongoose.model<IActivity & mongoose.Document>(
