@@ -36,21 +36,34 @@ export async function startBasicContainer(ws: WebSocket) {
 
 export async function attachSocketToContainer(
     wss: NodeJS.ReadWriteStream,
-    id: string
+    id: string,
+    isBidirectional: boolean = true
 ) {
     try {
         let container = docker.getContainer(id);
 
+        console.log("Container ID: " + id, "Bidirectional: " + isBidirectional);
+
         container.attach(
-            { stream: true, stdout: true, stderr: true, stdin: true },
+            {
+                stream: true,
+                stdout: true,
+                stderr: true,
+                stdin: isBidirectional,
+                logs: true
+            },
             function(err: Error, stream) {
                 if (err || stream === undefined) {
                     // handleError();
                     return;
                 }
                 console.log("Stream Connection Established!");
-                stream.pipe(wss);
-                wss.pipe(stream);
+                if (isBidirectional) {
+                    stream.pipe(wss);
+                    wss.pipe(stream);
+                } else {
+                    stream.pipe(wss);
+                }
             }
         );
     } catch (err) {
@@ -175,16 +188,19 @@ export async function executeCommand(
     }
 }
 
-export async function stopContainer(id: string) {
+export async function stopContainer(id: string, shouldRemove: boolean = false) {
     try {
         console.log(id);
         let container = docker.getContainer(id);
 
         await container.stop();
 
-        await container.remove();
-
-        console.log("SUCCESSFULLY KILLED: " + id);
+        if (shouldRemove) {
+            await container.remove();
+            console.log("SUCCESSFULLY KILLED: " + id);
+        } else {
+            console.log("SUCCESSFULLY PAUSED: " + id);
+        }
     } catch (err) {
         console.log(err);
     }
@@ -207,8 +223,8 @@ export function stopEverything() {
     });
 }
 
-export async function loadExerciseContainer(ws: WebSocket, exerciseID: number) {
-    let imageName = exerciseID === 0 ? "python_basics" : "undef";
+export async function loadExerciseContainer(ws: WebSocket, exerciseId: number) {
+    let imageName = exerciseId === 0 ? "python_basics" : "undef";
 
     await buildImage(imageName);
 
@@ -216,16 +232,20 @@ export async function loadExerciseContainer(ws: WebSocket, exerciseID: number) {
         Image: imageName,
         AttachStderr: true,
         AttachStdout: true,
-        AttachStdin: false,
-        Tty: true
+        AttachStdin: true,
+        Tty: true,
+        OpenStdin: true,
+        StdinOnce: false
     });
 
     await container.start();
 
+    console.log("Exercise Container Started: " + imageName);
+
     ws.send(
         JSON.stringify({
             type: "Exercise.Connect",
-            data: { id: container.id }
+            data: { exerciseContainerId: container.id }
         })
     );
 }
@@ -252,3 +272,5 @@ async function buildImage(image: string, label?: string) {
         });
     });
 }
+
+// async function saveCode

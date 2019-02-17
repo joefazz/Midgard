@@ -12,7 +12,8 @@ import {
     startBasicContainer,
     executeCommand,
     readCode,
-    loadExerciseContainer
+    loadExerciseContainer,
+    stopContainer
 } from "./docker/container_funcs";
 import { Request, Response, NextFunction } from "express";
 import { MongoError } from "mongodb";
@@ -43,11 +44,11 @@ server.ws("/", (ws: WebSocket) => {
     // @ts-ignore
     ws.on("message", (msg: string) => {
         const { type, data } = JSON.parse(msg);
-        console.log("Message Recieved");
+        console.log("Message Recieved: " + type);
         switch (type) {
             case "Container.Stop":
                 console.log("Stopping Container");
-                // stopContainer(data.id);
+                stopContainer(data.id);
                 return;
             case "Container.Exec":
                 console.log("Executing command");
@@ -57,7 +58,8 @@ server.ws("/", (ws: WebSocket) => {
                 readCode(ws, data.id, data.file);
                 break;
             case "Exercise.Start":
-                loadExerciseContainer(ws, data.id);
+                console.log("loading exercise");
+                loadExerciseContainer(ws, data.exerciseID);
                 break;
             default:
                 console.log("Unknown type", type);
@@ -75,7 +77,7 @@ server.ws("/connect", (ws: WebSocket, req: Request) => {
     const stream = websocketStream(ws, { binary: true });
     console.log("Trying to connect streams");
 
-    attachSocketToContainer(stream, req.query.id);
+    attachSocketToContainer(stream, req.query.id, req.query.bidirectional);
 });
 
 server.post(
@@ -172,6 +174,7 @@ server.get("/exercises", (req: Request, res: Response) => {
 server.get("/activity", (req: Request, res: Response) => {
     const { id } = req.query;
 
+    console.log("Retrieving activity");
     Activity.findById(id)
         .populate("exercises")
         .exec()
