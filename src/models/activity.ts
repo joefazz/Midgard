@@ -8,6 +8,7 @@ const activitySchema = new Schema({
     title: String,
     description: String,
     container: String,
+    entrypoint: String,
     length: Number,
     difficulty: String,
     language: String,
@@ -19,6 +20,7 @@ export type IActivity = {
     description: string;
     container: string;
     length: number;
+    entrypoint: string;
     difficulty: "beginner" | "intermediate" | "advanced";
     language: string;
     exercises?: mongoose.Types.ObjectId[];

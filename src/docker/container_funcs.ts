@@ -144,7 +144,8 @@ export async function saveCodeToContainer(
 export async function attachSocketToContainer(
     wss: NodeJS.ReadWriteStream,
     id: string,
-    isBidirectional: boolean = true
+    isBidirectional: boolean = true,
+    showLogs: boolean
 ) {
     try {
         let container = docker.getContainer(id);
@@ -157,7 +158,7 @@ export async function attachSocketToContainer(
                 stdout: true,
                 stderr: true,
                 stdin: isBidirectional,
-                logs: true
+                logs: showLogs
             },
             function(err: Error, stream) {
                 if (err || stream === undefined) {
@@ -186,7 +187,6 @@ export async function attachStreamToExecution(
 ) {
     try {
         const attachOptions = {
-            Tty: true,
             stream: true,
             stdout: true,
             stderr: true,
@@ -197,15 +197,12 @@ export async function attachStreamToExecution(
 
         const CMD = getCodeExecutionCommand(Repl.PYTHON, filename);
 
-        console.log("CMD: ", CMD);
-
         container.exec(
             {
                 AttachStdin: true,
                 AttachStdout: true,
                 AttachStderr: true,
-                OpenStdin: true,
-                StdinOnce: false,
+                Tty: true,
                 Cmd: CMD
             },
             (err, exec) => {
@@ -221,8 +218,8 @@ export async function attachStreamToExecution(
                             console.log(err);
                             return err;
                         }
-                        wss.pipe(result);
                         result.pipe(wss);
+                        wss.pipe(result);
                     }
                 );
             }

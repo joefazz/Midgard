@@ -54,7 +54,7 @@ server.ws("/", (ws: WebSocket) => {
                 return;
             case "Container.Exec":
                 console.log("Executing command");
-                executeCommand(ws, data.id, data.repl, data.code);
+                executeCommand(ws, data.id, data.repl, data.filename);
                 break;
             case "Code.Read":
                 // readCode(ws, data.id, data.file);
@@ -83,7 +83,12 @@ server.ws("/connect", (ws: WebSocket, req: Request) => {
     const stream = websocketStream(ws, { binary: true });
     console.log("Trying to connect streams");
 
-    attachSocketToContainer(stream, req.query.id, req.query.bidirectional);
+    attachSocketToContainer(
+        stream,
+        req.query.id,
+        req.query.bidirectional,
+        req.query.logs
+    );
 });
 
 // @ts-ignore
@@ -182,7 +187,7 @@ server.get("/exercises", (req: Request, res: Response) => {
         if (err) {
             res.status(500).send(err);
         }
-        res.json(documents).send();
+        res.json(documents);
     });
 });
 
