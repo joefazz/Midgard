@@ -11,14 +11,16 @@ import {
     attachSocketToContainer,
     startBasicContainer,
     executeCommand,
-    readCode,
     loadExerciseContainer,
-    stopContainer
+    stopContainer,
+    attachStreamToExecution,
+    saveCodeToContainer
 } from "./docker/container_funcs";
 import { Request, Response, NextFunction } from "express";
 import { MongoError } from "mongodb";
 import { Activity, IActivity } from "./models/activity";
 import { Exercise } from "./models/exercise";
+import { Repl } from "./types";
 
 const server = express();
 
@@ -55,11 +57,15 @@ server.ws("/", (ws: WebSocket) => {
                 executeCommand(ws, data.id, data.repl, data.code);
                 break;
             case "Code.Read":
-                readCode(ws, data.id, data.file);
+                // readCode(ws, data.id, data.file);
                 break;
             case "Exercise.Start":
                 console.log("loading exercise");
                 loadExerciseContainer(ws, data.exerciseID);
+                break;
+            case "Code.Save":
+                console.log("Saving code");
+                saveCodeToContainer(ws, data.id, data.filename, data.code);
                 break;
             default:
                 console.log("Unknown type", type);
@@ -78,6 +84,15 @@ server.ws("/connect", (ws: WebSocket, req: Request) => {
     console.log("Trying to connect streams");
 
     attachSocketToContainer(stream, req.query.id, req.query.bidirectional);
+});
+
+// @ts-ignore
+server.ws("/exercise", (ws: WebSocket, req: Request) => {
+    const stream = websocketStream(ws, { binary: true });
+    const { id, repl, filename } = req.query;
+    console.log("Trying to connect exercise stream");
+
+    attachStreamToExecution(stream, id, repl, filename);
 });
 
 server.post(

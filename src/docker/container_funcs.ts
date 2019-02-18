@@ -2,6 +2,7 @@ import docker from "./dockerapi";
 import _ = require("lodash");
 import { getGod } from "../utils/gods";
 import { Repl } from "../types";
+import { getCodeSaveCommand, getCodeExecutionCommand } from "./parse_code";
 
 export async function startBasicContainer(ws: WebSocket) {
     await buildImage("basic");
@@ -32,6 +33,112 @@ export async function startBasicContainer(ws: WebSocket) {
 
         ws.send(message);
     });
+}
+
+// TODO: Implement this
+// export async function readCode(ws: WebSocket, id: string, file: string) {
+//     try {
+//         let attach_opts = {
+//             Tty: true,
+//             stream: false,
+//             stdout: true,
+//             stderr: true
+//         };
+//         const cmd = ["cat", file];
+//         const container = docker.getContainer(id);
+
+//         container.exec(
+//             {
+//                 AttachStdin: false,
+//                 AttachStdout: true,
+//                 AttachStderr: true,
+//                 Cmd: cmd
+//             },
+//             (err, exec) => {
+//                 if (err) {
+//                     // handle err
+//                     console.log(err);
+//                     return;
+//                 }
+//                 exec.start(attach_opts, (err: any, res: any) => {
+//                     console.log(err);
+//                     res.on("data", (chunk: any) => {
+//                         console.log(chunk.toString());
+//                         ws.send(
+//                             JSON.stringify({
+//                                 type: "Code.Read",
+//                                 data: chunk.toString()
+//                             })
+//                         );
+//                     });
+//                 });
+//             }
+//         );
+//     } catch (err) {
+//         console.log(err);
+//     }
+// }
+
+export async function saveCodeToContainer(
+    ws: WebSocket,
+    id: string,
+    filename: string,
+    code: string
+) {
+    try {
+        const attachOptions = {
+            Tty: true,
+            stream: false,
+            stdout: true,
+            stderr: true,
+            stdin: true
+        };
+
+        let container = docker.getContainer(id);
+
+        const CMD = getCodeSaveCommand(filename, code);
+
+        container.exec(
+            {
+                AttachStdin: true,
+                AttachStdout: true,
+                AttachStderr: true,
+                OpenStdin: false,
+                StdinOnce: false,
+                Cmd: CMD
+            },
+            (err, exec) => {
+                if (err) {
+                    console.log(err);
+                    return err;
+                }
+
+                exec.start(
+                    attachOptions,
+                    (err: Error, result: NodeJS.ReadWriteStream) => {
+                        if (err) {
+                            console.log(err);
+                            ws.send(
+                                JSON.stringify({
+                                    type: "Code.Save",
+                                    data: { success: false, error: err }
+                                })
+                            );
+                            return err;
+                        }
+                        ws.send(
+                            JSON.stringify({
+                                type: "Code.Save",
+                                data: { success: true }
+                            })
+                        );
+                    }
+                );
+            }
+        );
+    } catch (err) {
+        console.log(err);
+    }
 }
 
 export async function attachSocketToContainer(
@@ -71,43 +178,53 @@ export async function attachSocketToContainer(
     }
 }
 
-// TODO: Implement this
-export async function readCode(ws: WebSocket, id: string, file: string) {
+export async function attachStreamToExecution(
+    wss: NodeJS.ReadWriteStream,
+    id: string,
+    repl: Repl,
+    filename: string
+) {
     try {
-        let attach_opts = {
+        const attachOptions = {
             Tty: true,
-            stream: false,
+            stream: true,
             stdout: true,
-            stderr: true
+            stderr: true,
+            stdin: true
         };
-        const cmd = ["cat", file];
-        const container = docker.getContainer(id);
+
+        let container = docker.getContainer(id);
+
+        const CMD = getCodeExecutionCommand(Repl.PYTHON, filename);
+
+        console.log("CMD: ", CMD);
 
         container.exec(
             {
-                AttachStdin: false,
+                AttachStdin: true,
                 AttachStdout: true,
                 AttachStderr: true,
-                Cmd: cmd
+                OpenStdin: true,
+                StdinOnce: false,
+                Cmd: CMD
             },
             (err, exec) => {
                 if (err) {
-                    // handle err
                     console.log(err);
-                    return;
+                    return err;
                 }
-                exec.start(attach_opts, (err: any, res: any) => {
-                    console.log(err);
-                    res.on("data", (chunk: any) => {
-                        console.log(chunk.toString());
-                        ws.send(
-                            JSON.stringify({
-                                type: "Code.Read",
-                                data: chunk.toString()
-                            })
-                        );
-                    });
-                });
+
+                exec.start(
+                    attachOptions,
+                    (err: Error, result: NodeJS.ReadWriteStream) => {
+                        if (err) {
+                            console.log(err);
+                            return err;
+                        }
+                        wss.pipe(result);
+                        result.pipe(wss);
+                    }
+                );
             }
         );
     } catch (err) {
@@ -119,51 +236,28 @@ export async function executeCommand(
     ws: WebSocket,
     id: string,
     repl: Repl,
-    code: string
+    filename: string
 ) {
     try {
         let attach_opts = {
             Tty: true,
             stream: false,
             stdout: true,
-            stderr: true
+            stderr: true,
+            stdin: true
         };
 
-        let file = "";
-
-        switch (repl) {
-            case Repl.NODE:
-                file = "node.js";
-                break;
-            case Repl.PYTHON:
-                file = "python.py";
-                break;
-            case Repl.C:
-                file = "clang.c";
-        }
-
-        let cmd = ["bash", "-c"];
-
-        // Without this line the echo will break if the user decides they want to use a string
-        code = code.replace(/"/g, `\\"`);
-
-        if (repl === Repl.C) {
-            cmd.push(
-                `echo "${code}" > ${file} && gcc ${file} && ./a.out && rm a.out`
-            );
-        } else {
-            cmd.push(`echo "${code}" > ${file} && ${repl} ${file}`);
-        }
-
-        console.log(cmd);
+        const cmd = getCodeExecutionCommand(repl, filename);
 
         let container = docker.getContainer(id);
 
         container.exec(
             {
-                AttachStdin: false,
+                AttachStdin: true,
                 AttachStdout: true,
                 AttachStderr: true,
+                OpenStdin: true,
+                StdinOnce: false,
                 Cmd: cmd
             },
             (err, exec) => {
@@ -226,7 +320,7 @@ export function stopEverything() {
 export async function loadExerciseContainer(ws: WebSocket, exerciseId: number) {
     let imageName = exerciseId === 0 ? "python_basics" : "undef";
 
-    await buildImage(imageName);
+    await buildImage(imageName, imageName, ["python.py"]);
 
     let container = await docker.createContainer({
         Image: imageName,
@@ -250,17 +344,17 @@ export async function loadExerciseContainer(ws: WebSocket, exerciseId: number) {
     );
 }
 
-// export function pollContainer() {
-//     docker.listContainers({ all: true }, (err, containers) => {
-//         // io.emit("containers.list", containers);
-//     });
-// }
-
-async function buildImage(image: string, label?: string) {
+async function buildImage(
+    image: string,
+    label?: string,
+    otherBuildFiles?: string[]
+) {
     let stream = await docker.buildImage(
         {
             context: __dirname + "/" + image,
-            src: ["Dockerfile"]
+            src: otherBuildFiles
+                ? ["Dockerfile", ...otherBuildFiles]
+                : ["Dockerfile"]
         },
         { t: label || image }
     );
