@@ -279,7 +279,12 @@ export async function executeCommand(
     }
 }
 
-export async function stopContainer(id: string, shouldRemove: boolean = false) {
+export async function stopContainer(
+    ws: WebSocket,
+    id: string,
+    shouldRemove: boolean = false,
+    containerToRestart?: string
+) {
     try {
         console.log(id);
         let container = docker.getContainer(id);
@@ -291,6 +296,15 @@ export async function stopContainer(id: string, shouldRemove: boolean = false) {
             console.log("SUCCESSFULLY KILLED: " + id);
         } else {
             console.log("SUCCESSFULLY PAUSED: " + id);
+            ws.send(JSON.stringify({ type: "Container.Paused" }));
+        }
+
+        if (containerToRestart) {
+            let restart = docker.getContainer(containerToRestart);
+
+            restart.start();
+
+            ws.send(JSON.stringify({ type: "Container.Start" }));
         }
     } catch (err) {
         console.log(err);
@@ -336,7 +350,7 @@ export async function loadExerciseContainer(ws: WebSocket, exerciseId: number) {
     ws.send(
         JSON.stringify({
             type: "Exercise.Connect",
-            data: { exerciseContainerId: container.id }
+            data: container.id
         })
     );
 }

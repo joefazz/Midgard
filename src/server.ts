@@ -50,7 +50,7 @@ server.ws("/", (ws: WebSocket) => {
         switch (type) {
             case "Container.Stop":
                 console.log("Stopping Container");
-                stopContainer(data.id);
+                stopContainer(ws, data.id);
                 return;
             case "Container.Exec":
                 console.log("Executing command");
@@ -62,6 +62,11 @@ server.ws("/", (ws: WebSocket) => {
             case "Exercise.Start":
                 console.log("loading exercise");
                 loadExerciseContainer(ws, data.exerciseID);
+                break;
+            case "Exercise.Stop":
+                console.log("Killing exercise");
+                console.log(data);
+                stopContainer(ws, data.id, true, data.containerId);
                 break;
             case "Code.Save":
                 console.log("Saving code");
