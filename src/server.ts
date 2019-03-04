@@ -6,6 +6,7 @@ import { createToken } from "./auth";
 import passport = require("passport");
 import bodyParser = require("body-parser");
 import cors = require("cors");
+import mongoose = require("mongoose");
 import { User } from "./models/user";
 import {
     attachSocketToContainer,
@@ -18,9 +19,8 @@ import {
 } from "./docker/container_funcs";
 import { Request, Response, NextFunction } from "express";
 import { MongoError } from "mongodb";
+import { Exercise, IExercise } from "./models/exercise";
 import { Activity, IActivity } from "./models/activity";
-import { Exercise } from "./models/exercise";
-import { Repl } from "./types";
 
 const server = express();
 
@@ -187,7 +187,60 @@ server.post("/user", (req: Request, res: Response) => {
     );
 });
 
-server.get("/exercises", (req: Request, res: Response) => {
+server.post("/create", (req: Request, res: Response) => {
+    const { activities, title, description, language }: IExercise = req.body;
+
+    const acts = activities as IActivity[];
+
+    let entrypoint, container;
+
+    switch (language) {
+        case "javascript":
+            entrypoint = "index.js";
+            container = "js_basics";
+            break;
+        case "cpp":
+            entrypoint = "main.c";
+            container = "cpp_basics";
+            break;
+        case "python":
+            entrypoint = "main.py";
+            container = "python_basics";
+            break;
+        default:
+    }
+
+    let activityIds: mongoose.Types.ObjectId[] = [];
+    acts.forEach(activity => {
+        const id = new mongoose.Types.ObjectId();
+        activityIds.push(id);
+        const activityDoc = new Activity({ _id: id, ...activity });
+
+        activityDoc.save(function(err) {
+            console.log(err);
+        });
+    });
+
+    let exercise = new Exercise({
+        title,
+        description,
+        language,
+        container,
+        entrypoint,
+        difficulty: "beginner",
+        length: activities.length,
+        activities: activityIds
+    });
+
+    exercise.save(function(err) {
+        if (err) {
+            console.log(err);
+        } else {
+        }
+    });
+});
+
+server.get("/activities", (req: Request, res: Response) => {
     Activity.find({}, (err, documents) => {
         if (err) {
             res.status(500).send(err);
@@ -196,16 +249,16 @@ server.get("/exercises", (req: Request, res: Response) => {
     });
 });
 
-server.get("/activity", (req: Request, res: Response) => {
+server.get("/exercise", (req: Request, res: Response) => {
     const { id } = req.query;
 
-    console.log("Retrieving activity");
-    Activity.findById(id)
-        .populate("exercises")
+    console.log("Retrieving Exercise");
+    Exercise.findById(id)
+        .populate("activities")
         .exec()
-        .then(activity => {
-            if (activity) {
-                res.json(activity);
+        .then(exercise => {
+            if (exercise) {
+                res.json(exercise);
                 return;
             }
             res.sendStatus(404);
@@ -214,13 +267,5 @@ server.get("/activity", (req: Request, res: Response) => {
             res.status(500).json(err);
         });
 });
-
-// server.post("/python", (req: Request, res: Response) => {
-//     // const { code } = req.body;
-
-//     // TODO: add code execution for home page
-
-//     res.send(200);
-// });
 
 export default server;

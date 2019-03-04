@@ -1,5 +1,3 @@
-import { Exercise, IExercise } from "./exercise";
-
 import mongoose = require("mongoose");
 
 export const Schema = mongoose.Schema;
@@ -7,23 +5,20 @@ export const Schema = mongoose.Schema;
 const activitySchema = new Schema({
     title: String,
     description: String,
-    container: String,
-    entrypoint: String,
-    length: Number,
-    difficulty: String,
-    language: String,
-    exercises: [{ type: Schema.Types.ObjectId, ref: Exercise.modelName }]
+    task: String,
+    expectedResult: String,
+    prebakedCode: String,
+    requiredCode: String,
+    exercise: { type: Schema.Types.ObjectId, ref: "Exercise" }
 });
 
 export type IActivity = {
     title: string;
     description: string;
-    container: string;
-    length: number;
-    entrypoint: string;
-    difficulty: "beginner" | "intermediate" | "advanced";
-    language: string;
-    exercises?: mongoose.Types.ObjectId[];
+    task: string;
+    expectedResult?: string;
+    prebakedCode?: string;
+    requiredCode?: string;
 };
 
 export const Activity = mongoose.model<IActivity & mongoose.Document>(

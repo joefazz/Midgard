@@ -1,10 +1,10 @@
 import server from "./server";
 import mongoose = require("mongoose");
 import { stopEverything } from "./docker/container_funcs";
-import { Activity } from "./models/activity";
-import { PythonActivity } from "./activities/python/activity";
 import { Exercise } from "./models/exercise";
-import { pythonExercises } from "./activities/python/exercises";
+import { PythonActivity } from "./activities/python/exercise";
+import { Activity } from "./models/activity";
+import { pythonActivities } from "./activities/python/activities";
 const PORT = 4000;
 
 mongoose.connect("mongodb://Mongo/midgard", { useNewUrlParser: true });
@@ -12,24 +12,24 @@ mongoose.connect("mongodb://Mongo/midgard", { useNewUrlParser: true });
 function start() {
     // stopEverything();
     // let x: mongoose.Types.ObjectId[] = [];
-    // pythonExercises.forEach(exercise => {
+    // pythonActivities.forEach(activity => {
     //     const id = new mongoose.Types.ObjectId();
     //     x.push(id);
-    //     const exerciseDoc = new Exercise({ _id: id, ...exercise });
+    //     const activityDoc = new Activity({ _id: id, ...activity });
 
-    //     exerciseDoc.save(function(err) {
+    //     activityDoc.save(function(err) {
     //         console.log(err);
     //     });
     // });
 
     // console.log(x);
 
-    // let activity = new Activity({
+    // let exercise = new Exercise({
     //     ...PythonActivity,
-    //     exercises: x
+    //     activities: x
     // });
 
-    // activity.save(function(err) {
+    // exercise.save(function(err) {
     //     if (err) {
     //         console.log(err);
     //     } else {

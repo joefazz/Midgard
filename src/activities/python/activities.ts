@@ -1,6 +1,6 @@
-import { IExercise } from "../../models/exercise";
+import { IActivity } from "../../models/activity";
 
-export const pythonExercises: IExercise[] = [
+export const pythonActivities: IActivity[] = [
     {
         title: "Hello String",
         description: ` A string is how computers represent a word or sentence as data, the word string means a string of characters!\n\n They are used everywhere in programming and learning how to create, manipulate and arrange them is a fundamental skill to programming.`,
