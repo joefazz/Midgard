@@ -1,5 +1,11 @@
 import { Language } from "../@types";
 
+export enum Repl {
+    PYTHON = "python",
+    JS = "node",
+    C = "gcc"
+}
+
 export function getCodeSaveCommand(filename: string, code: string) {
     let cmd = ["/bin/bash", "-c"];
 
@@ -12,10 +18,10 @@ export function getCodeSaveCommand(filename: string, code: string) {
     return cmd;
 }
 
-export function getCodeExecutionCommand(repl: Language, file: string) {
+export function getCodeExecutionCommand(repl: Repl, file: string) {
     let command = ["/bin/bash", "-c"];
 
-    if (repl === Language.C) {
+    if (repl === Repl.C) {
         return command.concat(`gcc ${file} && ./a.out && rm a.out`);
     } else {
         return command.concat(`${repl} ${file}`);

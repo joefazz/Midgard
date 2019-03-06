@@ -2,7 +2,11 @@ import docker from "./dockerapi";
 import _ = require("lodash");
 import { getGod } from "../utils/gods";
 import { Language } from "../@types";
-import { getCodeSaveCommand, getCodeExecutionCommand } from "./parse_code";
+import {
+    getCodeSaveCommand,
+    getCodeExecutionCommand,
+    Repl
+} from "./parse_code";
 
 export async function startBasicContainer(ws: WebSocket) {
     await buildImage("basic");
@@ -182,7 +186,7 @@ export async function attachSocketToContainer(
 export async function attachStreamToExecution(
     wss: NodeJS.ReadWriteStream,
     id: string,
-    repl: Language,
+    repl: Repl,
     filename: string
 ) {
     try {
@@ -195,7 +199,7 @@ export async function attachStreamToExecution(
 
         let container = docker.getContainer(id);
 
-        const CMD = getCodeExecutionCommand(Language.PYTHON, filename);
+        const CMD = getCodeExecutionCommand(repl, filename);
 
         container.exec(
             {
@@ -232,7 +236,7 @@ export async function attachStreamToExecution(
 export async function executeCommand(
     ws: WebSocket,
     id: string,
-    repl: Language,
+    repl: Repl,
     filename: string
 ) {
     try {
@@ -328,13 +332,14 @@ export function stopEverything() {
     });
 }
 
-export async function loadExerciseContainer(ws: WebSocket, exerciseId: number) {
-    let imageName = exerciseId === 0 ? "python_basics" : "undef";
-
-    await buildImage(imageName, imageName, ["python.py"]);
+export async function loadExerciseContainer(
+    ws: WebSocket,
+    image: "python_basics" | "js_basics" | "cpp_basics"
+) {
+    await buildImage(image, image);
 
     let container = await docker.createContainer({
-        Image: imageName,
+        Image: image,
         AttachStderr: true,
         AttachStdout: true,
         AttachStdin: true,
@@ -345,7 +350,7 @@ export async function loadExerciseContainer(ws: WebSocket, exerciseId: number) {
 
     await container.start();
 
-    console.log("Exercise Container Started: " + imageName);
+    console.log("Exercise Container Started: " + image);
 
     ws.send(
         JSON.stringify({

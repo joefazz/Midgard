@@ -62,7 +62,7 @@ server.ws("/", (ws: WebSocket) => {
                 break;
             case "Exercise.Start":
                 console.log("loading exercise");
-                loadExerciseContainer(ws, data.exerciseID);
+                loadExerciseContainer(ws, data.image);
                 break;
             case "Exercise.Stop":
                 console.log("Killing exercise");
@@ -191,6 +191,7 @@ server.post("/user", (req: Request, res: Response) => {
 server.post("/create", (req: Request, res: Response) => {
     const { activities, title, description, language }: IExercise = req.body;
 
+    console.log(req.body);
     const acts = activities as IActivity[];
 
     let entrypoint, container;
@@ -262,8 +263,9 @@ server.get("/exercise", (req: Request, res: Response) => {
         .populate("activities")
         .exec()
         .then(exercise => {
+            console.log("what is going on?", exercise);
             if (exercise) {
-                res.json(exercise);
+                res.send(exercise);
                 return;
             }
             res.sendStatus(404);
