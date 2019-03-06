@@ -1,7 +1,7 @@
 import docker from "./dockerapi";
 import _ = require("lodash");
 import { getGod } from "../utils/gods";
-import { Repl } from "../types";
+import { Language } from "../@types";
 import { getCodeSaveCommand, getCodeExecutionCommand } from "./parse_code";
 
 export async function startBasicContainer(ws: WebSocket) {
@@ -182,7 +182,7 @@ export async function attachSocketToContainer(
 export async function attachStreamToExecution(
     wss: NodeJS.ReadWriteStream,
     id: string,
-    repl: Repl,
+    repl: Language,
     filename: string
 ) {
     try {
@@ -195,7 +195,7 @@ export async function attachStreamToExecution(
 
         let container = docker.getContainer(id);
 
-        const CMD = getCodeExecutionCommand(Repl.PYTHON, filename);
+        const CMD = getCodeExecutionCommand(Language.PYTHON, filename);
 
         container.exec(
             {
@@ -232,7 +232,7 @@ export async function attachStreamToExecution(
 export async function executeCommand(
     ws: WebSocket,
     id: string,
-    repl: Repl,
+    repl: Language,
     filename: string
 ) {
     try {

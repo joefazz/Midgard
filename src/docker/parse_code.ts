@@ -1,4 +1,4 @@
-import { Repl } from "../types";
+import { Language } from "../@types";
 
 export function getCodeSaveCommand(filename: string, code: string) {
     let cmd = ["/bin/bash", "-c"];
@@ -12,10 +12,10 @@ export function getCodeSaveCommand(filename: string, code: string) {
     return cmd;
 }
 
-export function getCodeExecutionCommand(repl: Repl, file: string) {
+export function getCodeExecutionCommand(repl: Language, file: string) {
     let command = ["/bin/bash", "-c"];
 
-    if (repl === Repl.C) {
+    if (repl === Language.C) {
         return command.concat(`gcc ${file} && ./a.out && rm a.out`);
     } else {
         return command.concat(`${repl} ${file}`);

@@ -21,6 +21,7 @@ import { Request, Response, NextFunction } from "express";
 import { MongoError } from "mongodb";
 import { Exercise, IExercise } from "./models/exercise";
 import { Activity, IActivity } from "./models/activity";
+import { Language } from "./@types";
 
 const server = express();
 
@@ -195,15 +196,15 @@ server.post("/create", (req: Request, res: Response) => {
     let entrypoint, container;
 
     switch (language) {
-        case "javascript":
+        case Language.JS:
             entrypoint = "index.js";
             container = "js_basics";
             break;
-        case "cpp":
+        case Language.C:
             entrypoint = "main.c";
             container = "cpp_basics";
             break;
-        case "python":
+        case Language.PYTHON:
             entrypoint = "main.py";
             container = "python_basics";
             break;
@@ -221,7 +222,9 @@ server.post("/create", (req: Request, res: Response) => {
         });
     });
 
+    const exerciseID = new mongoose.Types.ObjectId();
     let exercise = new Exercise({
+        _id: exerciseID,
         title,
         description,
         language,
@@ -234,8 +237,10 @@ server.post("/create", (req: Request, res: Response) => {
 
     exercise.save(function(err) {
         if (err) {
+            res.sendStatus(500);
             console.log(err);
         } else {
+            res.send({ id: exerciseID });
         }
     });
 });
