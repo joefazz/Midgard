@@ -1,7 +1,6 @@
 import docker from "./dockerapi";
 import _ = require("lodash");
 import { getGod } from "../utils/gods";
-import { Language } from "../@types";
 import {
     getCodeSaveCommand,
     getCodeExecutionCommand,

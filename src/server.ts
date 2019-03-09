@@ -246,8 +246,8 @@ server.post("/create", (req: Request, res: Response) => {
     });
 });
 
-server.get("/activities", (req: Request, res: Response) => {
-    Activity.find({}, (err, documents) => {
+server.get("/exercises", (req: Request, res: Response) => {
+    Exercise.find({}, (err, documents) => {
         if (err) {
             res.status(500).send(err);
         }
