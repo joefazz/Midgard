@@ -1,9 +1,13 @@
 FROM alpine
 
-WORKDIR /code
-
 RUN apk add --update bash python3 nodejs gcc libc-dev git
 
-COPY . /code
+RUN adduser -D damien
 
-RUN rm Dockerfile
+USER damien
+
+RUN mkdir /home/damien/code
+
+WORKDIR /home/damien/code
+
+COPY . /home/damien/code

@@ -21,6 +21,7 @@ export async function startBasicContainer(ws: WebSocket) {
         Cmd: ["/bin/bash"],
         OpenStdin: true,
         StdinOnce: false,
+        NetworkDisabled: true,
         name
     });
 
@@ -37,50 +38,6 @@ export async function startBasicContainer(ws: WebSocket) {
         ws.send(message);
     });
 }
-
-// TODO: Implement this
-// export async function readCode(ws: WebSocket, id: string, file: string) {
-//     try {
-//         let attach_opts = {
-//             Tty: true,
-//             stream: false,
-//             stdout: true,
-//             stderr: true
-//         };
-//         const cmd = ["cat", file];
-//         const container = docker.getContainer(id);
-
-//         container.exec(
-//             {
-//                 AttachStdin: false,
-//                 AttachStdout: true,
-//                 AttachStderr: true,
-//                 Cmd: cmd
-//             },
-//             (err, exec) => {
-//                 if (err) {
-//                     // handle err
-//                     console.log(err);
-//                     return;
-//                 }
-//                 exec.start(attach_opts, (err: any, res: any) => {
-//                     console.log(err);
-//                     res.on("data", (chunk: any) => {
-//                         console.log(chunk.toString());
-//                         ws.send(
-//                             JSON.stringify({
-//                                 type: "Code.Read",
-//                                 data: chunk.toString()
-//                             })
-//                         );
-//                     });
-//                 });
-//             }
-//         );
-//     } catch (err) {
-//         console.log(err);
-//     }
-// }
 
 export async function saveCodeToContainer(
     ws: WebSocket,
@@ -282,6 +239,19 @@ export async function executeCommand(
     }
 }
 
+export async function resumeContainer(ws: WebSocket, id: string) {
+    try {
+        let container = docker.getContainer(id);
+
+        await container.unpause();
+
+        console.log("SUCCESSFULLY UNPAUSED: " + id);
+        ws.send(JSON.stringify({ type: "Container.Resume", data: {} }));
+    } catch (err) {
+        console.log(err);
+    }
+}
+
 export async function stopContainer(
     ws: WebSocket,
     id: string,
@@ -289,25 +259,24 @@ export async function stopContainer(
     containerToRestart?: string
 ) {
     try {
-        console.log(id);
         let container = docker.getContainer(id);
 
-        await container.stop();
-
         if (shouldRemove) {
+            await container.stop();
             await container.remove();
             console.log("SUCCESSFULLY KILLED: " + id);
         } else {
+            await container.pause();
             console.log("SUCCESSFULLY PAUSED: " + id);
-            ws.send(JSON.stringify({ type: "Container.Paused" }));
+            ws.send(JSON.stringify({ type: "Container.Pause" }));
         }
 
         if (containerToRestart) {
             let restart = docker.getContainer(containerToRestart);
 
-            restart.start();
+            restart.unpause();
 
-            ws.send(JSON.stringify({ type: "Container.Start" }));
+            ws.send(JSON.stringify({ type: "Container.Resume" }));
         }
     } catch (err) {
         console.log(err);
@@ -382,4 +351,22 @@ async function buildImage(
     });
 }
 
-// async function saveCode
+// TODO: Finish
+export async function getAllStats() {
+    let containers = await docker.listContainers();
+
+    let summary: unknown[] = [];
+
+    containers.forEach(container => {
+        let currContainer = docker.getContainer(container.Id);
+        currContainer.stats({ stream: false }).then(stats =>
+            summary.push({
+                id: container.Id,
+                name: container.Names.join("-"),
+                image: container.Image,
+                status: container.Status,
+                stats
+            })
+        );
+    });
+}

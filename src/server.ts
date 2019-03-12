@@ -15,7 +15,9 @@ import {
     loadExerciseContainer,
     stopContainer,
     attachStreamToExecution,
-    saveCodeToContainer
+    saveCodeToContainer,
+    resumeContainer,
+    getAllStats
 } from "./docker/container_funcs";
 import { Request, Response, NextFunction } from "express";
 import { MongoError } from "mongodb";
@@ -49,10 +51,18 @@ server.ws("/", (ws: WebSocket) => {
         const { type, data } = JSON.parse(msg);
         console.log("Message Recieved: " + type);
         switch (type) {
+            case "Container.Pause":
+                console.log("Pausing container");
+                stopContainer(ws, data.id);
+                break;
+            case "Container.Resume":
+                console.log("Resuming container");
+                resumeContainer(ws, data.id);
+                break;
             case "Container.Stop":
                 console.log("Stopping Container");
                 stopContainer(ws, data.id);
-                return;
+                break;
             case "Container.Exec":
                 console.log("Executing command");
                 executeCommand(ws, data.id, data.repl, data.filename);
@@ -273,6 +283,14 @@ server.get("/exercise", (req: Request, res: Response) => {
         .catch(err => {
             res.status(500).json(err);
         });
+});
+
+server.get("/containers", (req: Request, res: Response) => {
+    console.log("Getting stats");
+
+    getAllStats()
+        .then(stats => res.json(stats))
+        .catch(err => res.sendStatus(500));
 });
 
 export default server;
