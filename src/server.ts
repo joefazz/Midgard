@@ -12,9 +12,7 @@ import {
     attachSocketToContainer,
     startBasicContainer,
     executeCommand,
-    loadExerciseContainer,
     stopContainer,
-    attachStreamToExecution,
     saveCodeToContainer,
     resumeContainer,
     getAllStats
@@ -24,6 +22,10 @@ import { MongoError } from "mongodb";
 import { Exercise, IExercise } from "./models/exercise";
 import { Activity, IActivity } from "./models/activity";
 import { Language } from "./@types";
+import {
+    loadExerciseContainer,
+    attachStreamToExecution
+} from "./docker/exercise_funcs";
 
 const server = express();
 
@@ -52,18 +54,22 @@ server.ws("/", (ws: WebSocket) => {
         console.log("Message Recieved: " + type);
         switch (type) {
             case "Container.Pause":
+                // Used when focus is lost from tab
                 console.log("Pausing container");
                 stopContainer(ws, data.id);
                 break;
             case "Container.Resume":
+                // Used when focus is resumed via tab
                 console.log("Resuming container");
                 resumeContainer(ws, data.id);
                 break;
             case "Container.Stop":
+                // Used when trying to stop the container entirely
                 console.log("Stopping Container");
                 stopContainer(ws, data.id);
                 break;
             case "Container.Exec":
+                // This is used for the homepage demo window
                 console.log("Executing command");
                 executeCommand(ws, data.id, data.repl, data.filename);
                 break;
@@ -273,7 +279,6 @@ server.get("/exercise", (req: Request, res: Response) => {
         .populate("activities")
         .exec()
         .then(exercise => {
-            console.log("what is going on?", exercise);
             if (exercise) {
                 res.send(exercise);
                 return;
@@ -285,6 +290,7 @@ server.get("/exercise", (req: Request, res: Response) => {
         });
 });
 
+// TODO: finish this
 server.get("/containers", (req: Request, res: Response) => {
     console.log("Getting stats");
 

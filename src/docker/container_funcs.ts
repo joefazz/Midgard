@@ -1,5 +1,4 @@
 import docker from "./dockerapi";
-import _ = require("lodash");
 import { getGod } from "../utils/gods";
 import {
     getCodeSaveCommand,
@@ -139,56 +138,6 @@ export async function attachSocketToContainer(
     }
 }
 
-export async function attachStreamToExecution(
-    wss: NodeJS.ReadWriteStream,
-    id: string,
-    repl: Repl,
-    filename: string
-) {
-    try {
-        const attachOptions = {
-            stream: true,
-            stdout: true,
-            stderr: true,
-            stdin: true
-        };
-
-        let container = docker.getContainer(id);
-
-        const CMD = getCodeExecutionCommand(repl, filename);
-
-        container.exec(
-            {
-                AttachStdin: true,
-                AttachStdout: true,
-                AttachStderr: true,
-                Tty: true,
-                Cmd: CMD
-            },
-            (err, exec) => {
-                if (err) {
-                    console.log(err);
-                    return err;
-                }
-
-                exec.start(
-                    attachOptions,
-                    (err: Error, result: NodeJS.ReadWriteStream) => {
-                        if (err) {
-                            console.log(err);
-                            return err;
-                        }
-                        result.pipe(wss);
-                        wss.pipe(result);
-                    }
-                );
-            }
-        );
-    } catch (err) {
-        console.log(err);
-    }
-}
-
 export async function executeCommand(
     ws: WebSocket,
     id: string,
@@ -259,17 +208,8 @@ export async function stopContainer(
     containerToRestart?: string
 ) {
     try {
+        console.log("Stopping container: " + id);
         let container = docker.getContainer(id);
-
-        if (shouldRemove) {
-            await container.stop();
-            await container.remove();
-            console.log("SUCCESSFULLY KILLED: " + id);
-        } else {
-            await container.pause();
-            console.log("SUCCESSFULLY PAUSED: " + id);
-            ws.send(JSON.stringify({ type: "Container.Pause" }));
-        }
 
         if (containerToRestart) {
             let restart = docker.getContainer(containerToRestart);
@@ -277,6 +217,17 @@ export async function stopContainer(
             restart.unpause();
 
             ws.send(JSON.stringify({ type: "Container.Resume" }));
+        }
+
+        if (shouldRemove) {
+            ws.send(JSON.stringify({ type: "Exercise.Stop" }));
+            await container.stop();
+            await container.remove();
+            console.log("SUCCESSFULLY KILLED: " + id);
+        } else {
+            await container.pause();
+            console.log("SUCCESSFULLY PAUSED: " + id);
+            ws.send(JSON.stringify({ type: "Container.Pause" }));
         }
     } catch (err) {
         console.log(err);
@@ -300,35 +251,27 @@ export function stopEverything() {
     });
 }
 
-export async function loadExerciseContainer(
-    ws: WebSocket,
-    image: "python_basics" | "js_basics" | "cpp_basics"
-) {
-    await buildImage(image, image);
+// TODO: Finish
+export async function getAllStats() {
+    let containers = await docker.listContainers();
 
-    let container = await docker.createContainer({
-        Image: image,
-        AttachStderr: true,
-        AttachStdout: true,
-        AttachStdin: true,
-        Tty: true,
-        OpenStdin: true,
-        StdinOnce: false
+    let summary: unknown[] = [];
+
+    containers.forEach(container => {
+        let currContainer = docker.getContainer(container.Id);
+        currContainer.stats({ stream: false }).then(stats =>
+            summary.push({
+                id: container.Id,
+                name: container.Names.join("-"),
+                image: container.Image,
+                status: container.Status,
+                stats
+            })
+        );
     });
-
-    await container.start();
-
-    console.log("Exercise Container Started: " + image);
-
-    ws.send(
-        JSON.stringify({
-            type: "Exercise.Connect",
-            data: container.id
-        })
-    );
 }
 
-async function buildImage(
+export async function buildImage(
     image: string,
     label?: string,
     otherBuildFiles?: string[]
@@ -348,25 +291,5 @@ async function buildImage(
             console.log(res);
             return err ? reject(err) : resolve(res);
         });
-    });
-}
-
-// TODO: Finish
-export async function getAllStats() {
-    let containers = await docker.listContainers();
-
-    let summary: unknown[] = [];
-
-    containers.forEach(container => {
-        let currContainer = docker.getContainer(container.Id);
-        currContainer.stats({ stream: false }).then(stats =>
-            summary.push({
-                id: container.Id,
-                name: container.Names.join("-"),
-                image: container.Image,
-                status: container.Status,
-                stats
-            })
-        );
     });
 }
