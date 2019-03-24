@@ -20,7 +20,6 @@ export async function startBasicContainer(ws: WebSocket) {
         Cmd: ["/bin/bash"],
         OpenStdin: true,
         StdinOnce: false,
-        NetworkDisabled: true,
         name
     });
 
