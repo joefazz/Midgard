@@ -7,7 +7,7 @@ import {
 } from "./parse_code";
 
 export async function startBasicContainer(ws: WebSocket) {
-    await buildImage("basic");
+    await buildImage("basic", "basic", ["node.js", "main.c", "python.py"]);
 
     const name = getGod();
 
@@ -40,7 +40,7 @@ export async function startBasicContainer(ws: WebSocket) {
 export async function saveCodeToContainer(
     ws: WebSocket,
     id: string,
-    filename: string,
+    file: string,
     code: string
 ) {
     try {
@@ -54,7 +54,7 @@ export async function saveCodeToContainer(
 
         let container = docker.getContainer(id);
 
-        const CMD = getCodeSaveCommand(filename, code);
+        const CMD = getCodeSaveCommand(file, code);
 
         container.exec(
             {
@@ -275,6 +275,7 @@ export async function buildImage(
     label?: string,
     otherBuildFiles?: string[]
 ) {
+    console.log("build image please");
     let stream = await docker.buildImage(
         {
             context: __dirname + "/" + image,
@@ -291,4 +292,129 @@ export async function buildImage(
             return err ? reject(err) : resolve(res);
         });
     });
+}
+
+export async function readCode(
+    ws: WebSocket,
+    file: string,
+    containerId: string
+) {
+    try {
+        const attachOptions = {
+            Tty: true,
+            stream: false,
+            stdout: true,
+            stderr: true,
+            stdin: false
+        };
+
+        let container = docker.getContainer(containerId);
+
+        console.log(file);
+
+        container.exec(
+            {
+                AttachStdin: true,
+                AttachStdout: true,
+                AttachStderr: true,
+                OpenStdin: false,
+                StdinOnce: false,
+                Cmd: ["cat", file]
+            },
+            (err, exec) => {
+                if (err) {
+                    console.log(err);
+                    return err;
+                }
+
+                exec.start(
+                    attachOptions,
+                    (err: Error, result: NodeJS.ReadWriteStream) => {
+                        if (err) {
+                            console.log(err);
+                            ws.send(
+                                JSON.stringify({
+                                    type: "Code.Read",
+                                    data: { success: false, error: err }
+                                })
+                            );
+                            return err;
+                        }
+                        result.on("data", chunk => {
+                            ws.send(
+                                JSON.stringify({
+                                    type: "Code.Read",
+                                    data: { code: chunk.toString() }
+                                })
+                            );
+                        });
+                    }
+                );
+            }
+        );
+    } catch (err) {
+        console.log(err);
+    }
+}
+
+export async function getFileSystem(ws: WebSocket, containerId: string) {
+    try {
+        const attachOptions = {
+            Tty: true,
+            stream: false,
+            stdout: true,
+            stderr: true,
+            stdin: false
+        };
+
+        let container = docker.getContainer(containerId);
+
+        container.exec(
+            {
+                AttachStdin: true,
+                AttachStdout: true,
+                AttachStderr: true,
+                OpenStdin: false,
+                StdinOnce: false,
+                Cmd: ["ls"]
+            },
+            (err, exec) => {
+                if (err) {
+                    console.log(err);
+                    return err;
+                }
+
+                exec.start(
+                    attachOptions,
+                    (err: Error, result: NodeJS.ReadWriteStream) => {
+                        if (err) {
+                            console.log(err);
+                            ws.send(
+                                JSON.stringify({
+                                    type: "Container.TreeRead",
+                                    data: { success: false, error: err }
+                                })
+                            );
+                            return err;
+                        }
+                        result.on("data", chunk => {
+                            const files = chunk
+                                .toString()
+                                .split("\n")
+                                .filter((element: string) => element !== "");
+
+                            ws.send(
+                                JSON.stringify({
+                                    type: "Container.TreeRead",
+                                    data: { result: files }
+                                })
+                            );
+                        });
+                    }
+                );
+            }
+        );
+    } catch (err) {
+        console.log(err);
+    }
 }

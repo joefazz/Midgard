@@ -15,7 +15,9 @@ import {
     stopContainer,
     saveCodeToContainer,
     resumeContainer,
-    getAllStats
+    getAllStats,
+    getFileSystem,
+    readCode
 } from "./docker/container_funcs";
 import { Request, Response, NextFunction } from "express";
 import { MongoError } from "mongodb";
@@ -73,8 +75,12 @@ server.ws("/", (ws: WebSocket) => {
                 console.log("Executing command");
                 executeCommand(ws, data.id, data.repl, data.filename);
                 break;
+            case "Container.TreeRead":
+                console.log("Getting fs");
+                getFileSystem(ws, data.id);
+                break;
             case "Code.Read":
-                // readCode(ws, data.id, data.file);
+                readCode(ws, data.file, data.id);
                 break;
             case "Exercise.Start":
                 console.log("loading exercise");
@@ -87,7 +93,7 @@ server.ws("/", (ws: WebSocket) => {
                 break;
             case "Code.Save":
                 console.log("Saving code");
-                saveCodeToContainer(ws, data.id, data.filename, data.code);
+                saveCodeToContainer(ws, data.id, data.file, data.code);
                 break;
             default:
                 console.log("Unknown type", type);
