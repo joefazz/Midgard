@@ -8,6 +8,16 @@ USER damien
 
 RUN mkdir /home/damien/code
 
+COPY . /home/damien/code
+
 WORKDIR /home/damien/code
 
-COPY . /home/damien/code
+USER root
+
+RUN chown -R damien:damien *
+
+USER damien
+
+RUN rm Dockerfile
+
+
