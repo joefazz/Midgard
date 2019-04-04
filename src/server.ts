@@ -15,7 +15,6 @@ import {
     stopContainer,
     saveCodeToContainer,
     resumeContainer,
-    getAllStats,
     getFileSystem,
     readCode
 } from "./docker/container_funcs";
@@ -294,15 +293,6 @@ server.get("/exercise", (req: Request, res: Response) => {
         .catch(err => {
             res.status(500).json(err);
         });
-});
-
-// TODO: finish this
-server.get("/containers", (req: Request, res: Response) => {
-    console.log("Getting stats");
-
-    getAllStats()
-        .then(stats => res.json(stats))
-        .catch(err => res.sendStatus(500));
 });
 
 export default server;

@@ -250,26 +250,6 @@ export function stopEverything() {
     });
 }
 
-// TODO: Finish
-export async function getAllStats() {
-    let containers = await docker.listContainers();
-
-    let summary: unknown[] = [];
-
-    containers.forEach(container => {
-        let currContainer = docker.getContainer(container.Id);
-        currContainer.stats({ stream: false }).then(stats =>
-            summary.push({
-                id: container.Id,
-                name: container.Names.join("-"),
-                image: container.Image,
-                status: container.Status,
-                stats
-            })
-        );
-    });
-}
-
 export async function buildImage(
     image: string,
     label?: string,
