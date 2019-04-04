@@ -25,3 +25,8 @@ services:
         ports:
             - 9000:27017
         command: mongod --smallfiles --logpath=/dev/null
+    # ahab:
+    #     image: ahab
+    #     container_name: "Ahab"
+    #     volumes:
+    #         - /var/run/docker.sock:/var/run/docker.sock
