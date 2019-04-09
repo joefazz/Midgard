@@ -52,7 +52,7 @@ server.ws("/", (ws: WebSocket) => {
     // @ts-ignore
     ws.on("message", (msg: string) => {
         const { type, data } = JSON.parse(msg);
-        console.log("Message Recieved: " + type);
+        console.log("Message Received: " + type);
         switch (type) {
             case "Container.Pause":
                 // Used when focus is lost from tab
@@ -90,9 +90,12 @@ server.ws("/", (ws: WebSocket) => {
                 console.log(data);
                 stopContainer(ws, data.id, true, data.containerId);
                 break;
+            case "Exercise.Save":
+                console.log("Saving exercise code");
+                saveCodeToContainer(ws, data.id, data.file, data.code);
             case "Code.Save":
                 console.log("Saving code");
-                saveCodeToContainer(ws, data.id, data.file, data.code);
+                saveCodeToContainer(ws, data.id, data.filename, data.code);
                 break;
             default:
                 console.log("Unknown type", type);
