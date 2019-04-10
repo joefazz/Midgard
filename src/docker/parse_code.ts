@@ -38,12 +38,12 @@ export function getCodeSaveAndRunCommand(
     }
 }
 
-export function getCodeExecutionCommand(repl: Repl, file: string) {
-    let command = ["/bin/bash", "-c"];
+export function getCodeExecutionCommand(filename: string, repl: Repl) {
+    let cmd = ["/bin/bash", "-c"];
 
     if (repl === Repl.C) {
-        return command.concat(`gcc ${file} && ./a.out && rm a.out`);
+        return cmd.concat(`gcc ${filename} && ./a.out && rm a.out`);
     } else {
-        return command.concat(`${repl} ${file}`);
+        return cmd.concat(`${repl} ${filename}`);
     }
 }

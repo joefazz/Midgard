@@ -18,7 +18,7 @@ export async function attachStreamToExecution(
 
         let container = docker.getContainer(id);
 
-        const CMD = getCodeExecutionCommand(repl, filename);
+        const CMD = getCodeExecutionCommand(filename, repl);
 
         container.exec(
             {
