@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Test Code Parsing Functions Code save command 1`] = `
+Array [
+  "/bin/bash",
+  "-c",
+  "echo \\"let x = 7;console.log(x*x);\\" > testfile.js",
+]
+`;

@@ -152,7 +152,7 @@ export async function executeCommand(
             stdin: true
         };
 
-        const cmd = getCodeExecutionCommand(repl, filename);
+        const cmd = getCodeExecutionCommand(filename, repl);
 
         let container = docker.getContainer(id);
 
