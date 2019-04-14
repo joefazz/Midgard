@@ -95,7 +95,7 @@ server.ws("/", (ws: WebSocket) => {
                 saveCodeToContainer(ws, data.id, data.file, data.code);
             case "Code.Save":
                 console.log("Saving code");
-                saveCodeToContainer(ws, data.id, data.filename, data.code);
+                saveCodeToContainer(ws, data.id, data.file, data.code);
                 break;
             default:
                 console.log("Unknown type", type);
