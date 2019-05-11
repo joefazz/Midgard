@@ -6,8 +6,6 @@ import { createToken } from "./auth";
 import passport = require("passport");
 import bodyParser = require("body-parser");
 import cors = require("cors");
-import mongoose = require("mongoose");
-import { User } from "./models/user";
 import {
     attachSocketToContainer,
     startBasicContainer,
@@ -19,14 +17,14 @@ import {
     readCode
 } from "./docker/container_funcs";
 import { Request, Response, NextFunction } from "express";
-import { MongoError } from "mongodb";
-import { Exercise, IExercise } from "./models/exercise";
-import { Activity, IActivity } from "./models/activity";
 import { Language } from "./@types";
 import {
     loadExerciseContainer,
     attachStreamToExecution
 } from "./docker/exercise_funcs";
+import { IExercise } from "./models/exercise";
+import { IActivity } from "./models/activity";
+import { exerciseRef } from ".";
 
 const server = express();
 
@@ -130,38 +128,38 @@ server.ws("/exercise", (ws: WebSocket, req: Request) => {
     attachStreamToExecution(stream, id, repl, filename);
 });
 
-server.post(
-    "/signup",
-    passport.authenticate("signup", { session: false }),
-    async function(req: Request, res: Response) {
-        const { email, firstName, lastName, name, tags, age } = req.body;
-        const { salt, hash } = req.user;
+// server.post(
+//     "/signup",
+//     passport.authenticate("signup", { session: false }),
+//     async function(req: Request, res: Response) {
+//         const { email, firstName, lastName, name, tags, age } = req.body;
+//         const { salt, hash } = req.user;
 
-        try {
-            const user = await User.create({
-                email,
-                salt,
-                hash,
-                firstName,
-                lastName,
-                name,
-                tags,
-                age
-            });
+//         try {
+//             const user = await User.create({
+//                 email,
+//                 salt,
+//                 hash,
+//                 firstName,
+//                 lastName,
+//                 name,
+//                 tags,
+//                 age
+//             });
 
-            // @ts-ignore
-            // For now
-            const body = { _id: user.id, email: user.email };
-            const token = createToken({ body, maxAge: 3600 });
+//             // @ts-ignore
+//             // For now
+//             const body = { _id: user.id, email: user.email };
+//             const token = createToken({ body, maxAge: 3600 });
 
-            res.status(200);
-            res.json({ message: "Signup Successful", user, token });
-        } catch (error) {
-            res.status(500);
-            res.send(error);
-        }
-    }
-);
+//             res.status(200);
+//             res.json({ message: "Signup Successful", user, token });
+//         } catch (error) {
+//             res.status(500);
+//             res.send(error);
+//         }
+//     }
+// );
 
 // User login endpoint
 server.post("/login", (req: Request, res: Response, next: NextFunction) => {
@@ -190,27 +188,27 @@ server.post("/login", (req: Request, res: Response, next: NextFunction) => {
 });
 
 // Get user profile endpoint
-server.post("/user", (req: Request, res: Response) => {
-    const { email } = req.body;
+// server.post("/user", (req: Request, res: Response) => {
+//     const { email } = req.body;
 
-    // @ts-ignore
-    User.where({ email }).findOne(
-        {},
-        { hash: false, salt: false },
-        {},
-        (err: MongoError, user: any) => {
-            // console.log(err);
-            console.log(user);
-            if (err) {
-                res.status(500).send(err);
-            } else if (user === null) {
-                res.status(404).send();
-            } else {
-                res.json(user).send();
-            }
-        }
-    );
-});
+//     // @ts-ignore
+//     User.where({ email }).findOne(
+//         {},
+//         { hash: false, salt: false },
+//         {},
+//         (err: MongoError, user: any) => {
+//             // console.log(err);
+//             console.log(user);
+//             if (err) {
+//                 res.status(500).send(err);
+//             } else if (user === null) {
+//                 res.status(404).send();
+//             } else {
+//                 res.json(user).send();
+//             }
+//         }
+//     );
+// });
 
 server.post("/create", (req: Request, res: Response) => {
     const { activities, title, description, language }: IExercise = req.body;
@@ -236,20 +234,7 @@ server.post("/create", (req: Request, res: Response) => {
         default:
     }
 
-    let activityIds: mongoose.Types.ObjectId[] = [];
-    acts.forEach(activity => {
-        const id = new mongoose.Types.ObjectId();
-        activityIds.push(id);
-        const activityDoc = new Activity({ _id: id, ...activity });
-
-        activityDoc.save(function(err) {
-            console.log(err);
-        });
-    });
-
-    const exerciseID = new mongoose.Types.ObjectId();
-    let exercise = new Exercise({
-        _id: exerciseID,
+    exerciseRef.push().set({
         title,
         description,
         language,
@@ -257,45 +242,39 @@ server.post("/create", (req: Request, res: Response) => {
         entrypoint,
         difficulty: "beginner",
         length: activities.length,
-        activities: activityIds
-    });
-
-    exercise.save(function(err) {
-        if (err) {
-            res.sendStatus(500);
-            console.log(err);
-        } else {
-            res.send({ id: exerciseID });
-        }
+        activities: activities
     });
 });
 
 server.get("/exercises", (req: Request, res: Response) => {
-    Exercise.find({}, (err, documents) => {
-        if (err) {
-            res.status(500).send(err);
-        }
-        res.json(documents);
-    });
+    exerciseRef.once(
+        "value",
+        snapshot => {
+            res.json(snapshot.val());
+        },
+        () => res.status(500).send()
+    );
+
+    // Exercise.find({}, (err, documents) => {
+    //     if (err) {
+    //         res.status(500).send(err);
+    //     }
+    //     res.json(documents);
+    // });
 });
 
 server.get("/exercise", (req: Request, res: Response) => {
     const { id } = req.query;
 
+    const exercise = exerciseRef.child(id);
     console.log("Retrieving Exercise");
-    Exercise.findById(id)
-        .populate("activities")
-        .exec()
-        .then(exercise => {
-            if (exercise) {
-                res.send(exercise);
-                return;
-            }
-            res.sendStatus(404);
-        })
-        .catch(err => {
-            res.status(500).json(err);
-        });
+
+    if (exercise) {
+        res.send(exercise);
+        return;
+    } else {
+        res.sendStatus(404);
+    }
 });
 
 export default server;

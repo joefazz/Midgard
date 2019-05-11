@@ -1,19 +1,19 @@
-import { Activity, IActivity } from "./activity";
+// import { Activity, IActivity } from "./activity";
 
-import mongoose = require("mongoose");
+// import mongoose = require("mongoose");
 
-export const Schema = mongoose.Schema;
+// export const Schema = mongoose.Schema;
 
-const exerciseSchema = new Schema({
-    title: String,
-    description: String,
-    container: String,
-    entrypoint: String,
-    length: Number,
-    difficulty: String,
-    language: String,
-    activities: [{ type: Schema.Types.ObjectId, ref: Activity.modelName }]
-});
+// const exerciseSchema = new Schema({
+//     title: String,
+//     description: String,
+//     container: String,
+//     entrypoint: String,
+//     length: Number,
+//     difficulty: String,
+//     language: String,
+//     activities: [{ type: Schema.Types.ObjectId, ref: Activity.modelName }]
+// });
 
 export type IExercise = {
     title: string;
@@ -26,7 +26,7 @@ export type IExercise = {
     activities: mongoose.Types.ObjectId[] | IActivity[];
 };
 
-export const Exercise = mongoose.model<IExercise & mongoose.Document>(
-    "Exercise",
-    exerciseSchema
-);
+// export const Exercise = mongoose.model<IExercise & mongoose.Document>(
+//     "Exercise",
+//     exerciseSchema
+// );

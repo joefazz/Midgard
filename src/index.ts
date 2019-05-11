@@ -1,39 +1,22 @@
 import server from "./server";
-import mongoose = require("mongoose");
+import admin = require("firebase-admin");
 import { stopEverything } from "./docker/container_funcs";
-import { Exercise } from "./models/exercise";
 import { PythonActivity } from "./activities/python/exercise";
-import { Activity } from "./models/activity";
 import { pythonActivities } from "./activities/python/activities";
 const PORT = 4000;
 
-mongoose.connect("mongodb://Mongo/midgard", { useNewUrlParser: true });
+admin.initializeApp({
+    credential: admin.credential.cert(require("../asgard-service.json")),
+    databaseURL: "https://codexe-asgard.firebaseio.com"
+});
+
+let db = admin.database();
+export const exerciseRef = db.ref("exercises");
 
 function addData() {
-    let x: mongoose.Types.ObjectId[] = [];
-    pythonActivities.forEach(activity => {
-        const id = new mongoose.Types.ObjectId();
-        x.push(id);
-        const activityDoc = new Activity({ _id: id, ...activity });
+    exerciseRef.push().set({ ...PythonActivity, activities: pythonActivities });
 
-        activityDoc.save(function(err) {
-            console.log(err);
-        });
-    });
-
-    console.log(x);
-
-    let exercise = new Exercise({
-        ...PythonActivity,
-        activities: x
-    });
-
-    exercise.save(function(err) {
-        if (err) {
-            console.log(err);
-        } else {
-        }
-    });
+    console.log("setting");
 }
 
 function start() {
