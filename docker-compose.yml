@@ -10,21 +10,6 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock
         ports:
             - "4000:4000"
-        links:
-            - mongodb
-        depends_on:
-            - mongodb
-    mongodb:
-        image: mongo:latest
-        container_name: "mongo"
-        environment:
-            - MONGO_DATA_DIR=/data/db
-            - MONGO_LOG_DIR=/dev/null
-        volumes:
-            - ./data/db:/data/db
-        ports:
-            - 9000:27017
-        command: mongod --smallfiles --logpath=/dev/null
     # ahab:
     #     image: ahab
     #     container_name: "Ahab"

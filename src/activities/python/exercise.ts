@@ -7,6 +7,7 @@ export const PythonActivity: IExercise = {
     container: "python_basics",
     entrypoint: "main.py",
     length: pythonActivities.length,
+    slug: "python-strings-101",
     difficulty: "beginner",
     language: "python",
     activities: []

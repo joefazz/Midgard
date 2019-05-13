@@ -14,7 +14,10 @@ let db = admin.database();
 export const exerciseRef = db.ref("exercises");
 
 function addData() {
-    exerciseRef.push().set({ ...PythonActivity, activities: pythonActivities });
+    exerciseRef.push({
+        ...PythonActivity,
+        activities: pythonActivities
+    });
 
     console.log("setting");
 }

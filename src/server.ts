@@ -25,6 +25,7 @@ import {
 import { IExercise } from "./models/exercise";
 import { IActivity } from "./models/activity";
 import { exerciseRef } from ".";
+import { convertSnapshotToArray } from "./utils/firebase";
 
 const server = express();
 
@@ -214,7 +215,6 @@ server.post("/create", (req: Request, res: Response) => {
     const { activities, title, description, language }: IExercise = req.body;
 
     console.log(req.body);
-    const acts = activities as IActivity[];
 
     let entrypoint, container;
 
@@ -234,23 +234,26 @@ server.post("/create", (req: Request, res: Response) => {
         default:
     }
 
-    exerciseRef.push().set({
+    let newExerciseRef = exerciseRef.push({
         title,
         description,
         language,
         container,
         entrypoint,
+        slug: title.replace(" ", "-").toLowerCase(),
         difficulty: "beginner",
         length: activities.length,
         activities: activities
     });
+
+    res.json({ id: newExerciseRef.key });
 });
 
 server.get("/exercises", (req: Request, res: Response) => {
     exerciseRef.once(
         "value",
         snapshot => {
-            res.json(snapshot.val());
+            res.json(convertSnapshotToArray(snapshot));
         },
         () => res.status(500).send()
     );
@@ -269,12 +272,13 @@ server.get("/exercise", (req: Request, res: Response) => {
     const exercise = exerciseRef.child(id);
     console.log("Retrieving Exercise");
 
-    if (exercise) {
-        res.send(exercise);
-        return;
-    } else {
-        res.sendStatus(404);
-    }
+    exercise.once(
+        "value",
+        snapshot => {
+            res.send(snapshot.val());
+        },
+        () => res.status(500).send()
+    );
 });
 
 export default server;

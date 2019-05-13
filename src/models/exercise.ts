@@ -1,4 +1,4 @@
-// import { Activity, IActivity } from "./activity";
+import { IActivity } from "./activity";
 
 // import mongoose = require("mongoose");
 
@@ -20,10 +20,11 @@ export type IExercise = {
     description: string;
     container: string;
     length: number;
+    slug: string;
     entrypoint: string;
     difficulty: "beginner" | "intermediate" | "advanced";
     language: string;
-    activities: mongoose.Types.ObjectId[] | IActivity[];
+    activities: IActivity[];
 };
 
 // export const Exercise = mongoose.model<IExercise & mongoose.Document>(
